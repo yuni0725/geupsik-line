@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <title>급식 대기 시간 확인</title>
+    <!-- 
+      This frontend connects to api.py running on localhost:8000
+      Expected API response format: {"waiting_time": 150}
+      The waiting_time is in seconds and will be converted to min:sec format
+      Optimized for both desktop and mobile devices
+    -->
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Taebaek, Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin: 20px;
+      }
+
+      .title {
+        font-size: 2.5em;
+        margin-bottom: 30px;
+        font-weight: 700;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        color: #fff;
+      }
+
+      .waiting-time-container {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 15px;
+        padding: 30px;
+        margin: 20px 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .waiting-time {
+        font-size: 3em;
+        font-weight: 900;
+        margin: 10px 0;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        color: #ffeb3b;
+      }
+
+      .time-label {
+        font-size: 1.2em;
+        margin-bottom: 15px;
+        opacity: 0.9;
+        font-weight: 500;
+      }
+
+      .status {
+        font-size: 1.1em;
+        margin-top: 20px;
+        padding: 10px;
+        border-radius: 8px;
+        font-weight: 500;
+      }
+
+      .status.loading {
+        background: rgba(255, 193, 7, 0.3);
+        color: #fff3cd;
+      }
+
+      .status.success {
+        background: rgba(40, 167, 69, 0.3);
+        color: #d4edda;
+      }
+
+      .status.error {
+        background: rgba(220, 53, 69, 0.3);
+        color: #f8d7da;
+      }
+
+      .refresh-btn {
+        background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 25px;
+        font-size: 1.1em;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+        min-height: 48px; /* Minimum touch target size for mobile */
+        min-width: 120px;
+      }
+
+      .refresh-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .refresh-btn:active {
+        transform: translateY(0);
+      }
+
+      .refresh-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .info-text {
+        font-size: 0.9em;
+        opacity: 0.8;
+        margin-top: 15px;
+        line-height: 1.4;
+      }
+
+      .pulse {
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Mobile-specific styles */
+      @media (max-width: 768px) {
+        .container {
+          padding: 25px;
+          margin: 10px;
+          width: 95%;
+        }
+
+        .title {
+          font-size: 2em;
+          margin-bottom: 25px;
+        }
+
+        .waiting-time {
+          font-size: 2.5em;
+        }
+
+        .time-label {
+          font-size: 1.1em;
+        }
+
+        .refresh-btn {
+          padding: 18px 35px;
+          font-size: 1.2em;
+          min-height: 52px;
+          width: 100%;
+          max-width: 200px;
+        }
+
+        .info-text {
+          font-size: 0.85em;
+          line-height: 1.5;
+        }
+
+        .status {
+          font-size: 1em;
+        }
+
+        .api-info {
+          font-size: 0.8em;
+        }
+      }
+
+      /* Very small screens (phones in portrait) */
+      @media (max-width: 480px) {
+        .container {
+          padding: 20px;
+          margin: 5px;
+          width: 98%;
+        }
+
+        .title {
+          font-size: 1.8em;
+          margin-bottom: 20px;
+        }
+
+        .waiting-time {
+          font-size: 2.2em;
+        }
+
+        .waiting-time-container {
+          padding: 20px;
+        }
+
+        .refresh-btn {
+          padding: 20px 40px;
+          font-size: 1.1em;
+          min-height: 56px;
+          width: 100%;
+          max-width: 250px;
+        }
+      }
+
+      /* Touch device improvements */
+      @media (hover: none) and (pointer: coarse) {
+        .refresh-btn:hover {
+          transform: none;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .refresh-btn:active {
+          transform: scale(0.95);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="title">🍽️ 급식 대기 시간</h1>
+
+      <div class="waiting-time-container">
+        <div class="time-label">현재 예상 대기 시간</div>
+        <div class="waiting-time pulse" id="waitingTime">--:--</div>
+        <div class="status loading" id="status">데이터를 불러오는 중...</div>
+      </div>
+
+      <button class="refresh-btn" id="refreshBtn" onclick="fetchWaitingTime()">
+        🔄 새로고침
+      </button>
+
+      <div class="info-text">
+        실시간으로 급식 대기 시간을 확인하세요.<br />
+        30초마다 자동 업데이트되며, <br />
+        새로고침 버튼으로 수동 갱신 가능합니다.<br />
+        시간은 정확하지 않으며 참고용으로만 사용해주세요.
+      </div>
+    </div>
+
+    <script>
+      function convertSecondsToMinSec(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+
+        if (minutes > 0) {
+          return `${minutes}분 ${remainingSeconds
+            .toString()
+            .padStart(2, "0")}초`;
+        } else {
+          return `${remainingSeconds}초`;
+        }
+      }
+
+      function showLoading() {
+        const statusElement = document.getElementById("status");
+        const waitingTimeElement = document.getElementById("waitingTime");
+        const refreshBtn = document.getElementById("refreshBtn");
+
+        statusElement.textContent = "데이터를 불러오는 중...";
+        statusElement.className = "status loading";
+        waitingTimeElement.innerHTML = '<div class="loading-spinner"></div>';
+        refreshBtn.disabled = true;
+      }
+
+      function showSuccess(waitingTime) {
+        const statusElement = document.getElementById("status");
+        const waitingTimeElement = document.getElementById("waitingTime");
+        const refreshBtn = document.getElementById("refreshBtn");
+
+        const timeString = convertSecondsToMinSec(waitingTime);
+        waitingTimeElement.textContent = timeString;
+        statusElement.textContent = "업데이트 완료";
+        statusElement.className = "status success";
+        refreshBtn.disabled = false;
+
+        // Auto-hide success message after 3 seconds
+        setTimeout(() => {
+          statusElement.textContent = `마지막 업데이트: ${new Date().toLocaleTimeString(
+            "ko-KR"
+          )}`;
+          statusElement.className = "status";
+        }, 3000);
+      }
+
+      function showError(message) {
+        const statusElement = document.getElementById("status");
+        const waitingTimeElement = document.getElementById("waitingTime");
+        const refreshBtn = document.getElementById("refreshBtn");
+
+        waitingTimeElement.textContent = "--:--";
+        statusElement.textContent = `오류: ${message}`;
+        statusElement.className = "status error";
+        refreshBtn.disabled = false;
+      }
+
+      async function fetchWaitingTime() {
+        showLoading();
+
+        try {
+          const response = await fetch("http://localhost:8000/");
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log("API Response:", data); // Debug log
+
+          if (data.waiting_time !== undefined && data.waiting_time !== null) {
+            showSuccess(data.waiting_time);
+          } else {
+            throw new Error("대기 시간 데이터가 없습니다");
+          }
+        } catch (error) {
+          console.error("API 요청 실패:", error);
+
+          if (error.message.includes("Failed to fetch")) {
+            showError(
+              "서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요."
+            );
+          } else if (error.message.includes("CORS")) {
+            showError("CORS 오류: 브라우저에서 API 접근이 차단되었습니다.");
+          } else {
+            showError(error.message);
+          }
+        }
+      }
+
+      // Initial load
+      fetchWaitingTime();
+
+      // Auto-refresh every 30 seconds
+      setInterval(fetchWaitingTime, 30000);
+
+      // Removed space bar refresh functionality for better mobile experience
+    </script>
+  </body>
+</html>
